@@ -68,39 +68,96 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 </div>
-  <script>
+<script>
 (function(){
-  // Dossier où tu mettras tes photos (à côté de index.html)
-  const DIR = "taquets/";                // ex: /taquets/Taquets_240x305_paysage.jpeg
-  const EXT = ["jpeg","jpg","png","webp"];
-
+  const DIR = "taquets/";                        // dossier des images à côté de index.html
+  const EXT = ["jpeg","jpg","png","webp"];       // extensions testées
   const $ = s => document.querySelector(s);
-  const box   = $("#taquetPhotoBox");
-  const img   = $("#taquetPhotoImg");
-  const title = $("#taquetPhotoTitle");
-  const fileUi= $("#taquetPhotoFile");
-  const toggle= $("#toggleTaquetPhoto");
 
-  // On lit le format depuis TON appli (getPaper() existe déjà dans ton code)
-  // getPaper() retourne { h:cm, w:cm } (en cm) selon ta sélection (ou personnalisé).
-  function getPaperSizeMm(){
-    try{
-      const p = (typeof getPaper === "function") ? getPaper() : null;
-      if(p && p.h>0 && p.w>0){
-        // Convertit cm -> mm et arrondit à l'entier (24.0 -> 240 ; 30.5 -> 305 ; 21.6 -> 216)
-        const H = Math.round(p.h * 10);
-        const W = Math.round(p.w * 10);
-        return { H, W };
+  const box     = $("#taquetPhotoBox");
+  const img     = $("#taquetPhotoImg");
+  const title   = $("#taquetPhotoTitle");
+  const fileUi  = $("#taquetPhotoFile");
+  const toggle  = $("#toggleTaquetPhoto");
+
+  // --- petit indicateur de statut (facultatif mais pratique)
+  let chip = document.getElementById("taquetStatusChip");
+  if(!chip){
+    chip = document.createElement("div");
+    chip.id = "taquetStatusChip";
+    chip.style.cssText = "margin-top:6px;font-size:12px;opacity:.75";
+    box?.appendChild(chip);
+  }
+
+  // --- bouton de test manuel
+  let btn = document.getElementById("taquetRefreshBtn");
+  if(!btn){
+    btn = document.createElement("button");
+    btn.id = "taquetRefreshBtn";
+    btn.textContent = "Rafraîchir l’affichage";
+    btn.style.cssText = "margin-top:8px";
+    box?.appendChild(btn);
+    btn.addEventListener("click", updateTaquetPhoto);
+  }
+
+  // Helpers
+  function mmFromCm(x){ return Math.round(Number(x||0) * 10); }
+  function setChip(msg){ if(chip) chip.textContent = msg; }
+
+  // 1) STRATÉGIE PRINCIPALE : ta fonction existante getPaper() (en cm)
+  function tryGetFromGetter(){
+    if (typeof window.getPaper === "function") {
+      try {
+        const p = window.getPaper();
+        if(p && p.w > 0 && p.h > 0){
+          return {W:mmFromCm(p.w), H:mmFromCm(p.h)};
+        }
+      } catch(e){}
+    }
+    return null;
+  }
+
+  // 2) STRATÉGIE : parser un <select> (valeur “240x305” / texte “240 × 305”)
+  function tryGetFromSelects(){
+    const sels = Array.from(document.querySelectorAll("select"));
+    for(const s of sels){
+      const v = (s.value||"").toLowerCase();
+      let m = v.match(/^(\d+)\s*x\s*(\d+)$/);
+      if (!m) {
+        const opt = s.options[s.selectedIndex];
+        if (opt) m = (opt.text||"").toLowerCase().replace("×","x").match(/(\d+)\s*x\s*(\d+)/);
       }
-    }catch(e){}
-    // Fallback par défaut (24x30.5)
-    return { H:240, W:305 };
+      if (m) return {W:Number(m[1]), H:Number(m[2])};
+    }
+    return null;
+  }
+
+  // 3) STRATÉGIE : lire des champs input (ids contenant width/height ou largeur/hauteur) EN mm
+  function tryGetFromInputs(){
+    const nodes = Array.from(document.querySelectorAll("input, [data-paper-width], [data-paper-height]"));
+    let W=null,H=null;
+    for(const el of nodes){
+      const id=(el.id||"").toLowerCase();
+      if (id.includes("width")||id.includes("largeur"))  W = W ?? parseInt(el.value||el.getAttribute("data-paper-width")||"",10);
+      if (id.includes("height")||id.includes("hauteur")) H = H ?? parseInt(el.value||el.getAttribute("data-paper-height")||"",10);
+    }
+    if (W && H) return {W,H};
+    return null;
+  }
+
+  // 4) STRATÉGIE : fallback (24×30,5)
+  function fallback(){ return {W:305, H:240}; }
+
+  function getPaperSizeMm(){
+    return tryGetFromGetter() || tryGetFromSelects() || tryGetFromInputs() || fallback();
   }
 
   function candidatePaths(W, H){
-    // Photos fournies en mode paysage uniquement pour l’instant
     const big  = Math.max(W,H), small = Math.min(W,H);
-    const stem = `Taquets_${big}x${small}_paysage`;
+    const stem = `Taquets_${big}x${small}_paysage`; // pour l’instant uniquement paysage
+    // Renseigne le libellé
+    title.textContent = `Repères taquets — ${big} × ${small} mm (paysage)`;
+    // Construit les chemins à tester
     return EXT.map(ext => `${DIR}${stem}.${ext}`);
   }
 
@@ -110,57 +167,55 @@ if ('serviceWorker' in navigator) {
     const t = new Image();
     t.onload  = () => onOK(u);
     t.onerror = () => tryLoad(urls, onOK, onFail);
-    t.src = u + "?v=" + Date.now();  // anti-cache
+    t.src = u + "?v=" + Date.now(); // anti-cache
   }
 
   function updateTaquetPhoto(){
-    if(!toggle || !box) return;
-    if(!toggle.checked){
-      box.style.display = "none";
-      return;
-    }
-    const {H, W} = getPaperSizeMm();      // mm entiers
-    const paths  = candidatePaths(W, H);  // essaie .jpeg, .jpg, .png, .webp
-    title.textContent = `Repères taquets — ${Math.max(W,H)} × ${Math.min(W,H)} mm (paysage)`;
+    if(!toggle || !box){ return; }
+    if(!toggle.checked){ box.style.display = "none"; return; }
+
+    const {W,H} = getPaperSizeMm();         // en mm
+    const paths  = candidatePaths(W,H);
+
+    setChip(`Recherche: ${paths.map(p=>p.split('/').pop()).join('  |  ')}`);
 
     tryLoad(paths.slice(),
       (urlFound)=>{
         img.src = urlFound;
         fileUi.textContent = urlFound.split("/").pop();
         box.style.display = "";
+        setChip("✅ Photo trouvée");
       },
       ()=>{
         img.removeAttribute("src");
         fileUi.textContent = "";
-        box.style.display = "none";       // aucune image = rien à afficher
+        box.style.display = "none";
+        setChip("⚠️ Aucune photo correspondante trouvée");
       }
     );
   }
 
-  // Écouteurs basiques
-  if(toggle){ toggle.addEventListener("change", updateTaquetPhoto); }
+  // ——— Brancher les évènements de ton app ———
 
-  // Sans modifier ton code : on wrappe compute() pour déclencher l’update après chaque calcul.
+  // 1) Si ta fonction compute() existe, on la wrappe pour mettre à jour après calcul
   if (typeof window.compute === "function") {
-    const __origCompute = window.compute;
+    const _orig = window.compute;
     window.compute = function(){
-      const r = __origCompute.apply(this, arguments);
+      const r = _orig.apply(this, arguments);
       try { updateTaquetPhoto(); } catch(e){}
       return r;
     };
-  } else {
-    // Si compute n'est pas encore défini à ce moment, on fera un update au DOMContentLoaded quand même
   }
 
-  // Au chargement
-  document.addEventListener("DOMContentLoaded", updateTaquetPhoto);
-
-  // Par sécurité, si l’utilisateur change des selects/inputs sans déclencher compute (peu probable)
+  // 2) Sur tout changement d’inputs/selects
   document.addEventListener("change", (e)=>{
     if(e.target && (e.target.tagName==="SELECT" || e.target.tagName==="INPUT")){
-      try { updateTaquetPhoto(); } catch(e){}
+      updateTaquetPhoto();
     }
   });
+
+  // 3) Premier rendu
+  document.addEventListener("DOMContentLoaded", updateTaquetPhoto);
 })();
 </script>
 <body>
