@@ -31,7 +31,7 @@ if ('serviceWorker' in navigator) {
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
   h1{font-size:22px;margin:0}
-  .container{max-width:1100px;margin:0 auto;padding:20px}
+  .container{max-width:1200px;margin:0 auto;padding:20px}
   .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
   .section{padding:16px 18px}
   .grid{display:grid;gap:16px}
@@ -176,13 +176,7 @@ if ('serviceWorker' in navigator) {
   window.__margeur_updateTaquetPhoto = updateTaquetPhoto;
 })();
 </script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const card = document.getElementById("taquetsCard");
-  const footer = document.querySelector("footer");
-  if (card && footer) footer.parentNode.insertBefore(card, footer);
-});
-</script>
+
 <body>
   <div class="container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
