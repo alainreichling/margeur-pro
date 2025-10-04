@@ -70,99 +70,69 @@ if ('serviceWorker' in navigator) {
 </div>
 <script>
 (function(){
-  const DIR = "taquets/";                        // dossier des images à côté de index.html
-  const EXT = ["jpeg","jpg","png","webp"];       // extensions testées
+  const DIR = "taquets/";                           // <-- dossier en minuscule
+  const EXT = ["jpeg","jpg","png","webp"];          // extensions testées
   const $ = s => document.querySelector(s);
 
-  const box     = $("#taquetPhotoBox");
-  const img     = $("#taquetPhotoImg");
-  const title   = $("#taquetPhotoTitle");
-  const fileUi  = $("#taquetPhotoFile");
-  const toggle  = $("#toggleTaquetPhoto");
+  const box    = $("#taquetPhotoBox");
+  const img    = $("#taquetPhotoImg");
+  const title  = $("#taquetPhotoTitle");
+  const fileUi = $("#taquetPhotoFile");
+  const toggle = $("#toggleTaquetPhoto");
 
-  // --- petit indicateur de statut (facultatif mais pratique)
+  // Petit panneau de statut + lien test
   let chip = document.getElementById("taquetStatusChip");
   if(!chip){
     chip = document.createElement("div");
     chip.id = "taquetStatusChip";
-    chip.style.cssText = "margin-top:6px;font-size:12px;opacity:.75";
+    chip.style.cssText = "margin-top:6px;font-size:12px;opacity:.8";
     box?.appendChild(chip);
   }
-
-  // --- bouton de test manuel
-  let btn = document.getElementById("taquetRefreshBtn");
-  if(!btn){
-    btn = document.createElement("button");
-    btn.id = "taquetRefreshBtn";
-    btn.textContent = "Rafraîchir l’affichage";
-    btn.style.cssText = "margin-top:8px";
-    box?.appendChild(btn);
-    btn.addEventListener("click", updateTaquetPhoto);
+  let testLink = document.getElementById("taquetTestLink");
+  if(!testLink){
+    testLink = document.createElement("a");
+    testLink.id = "taquetTestLink";
+    testLink.textContent = "➡️ Ouvrir le 1er candidat dans un nouvel onglet";
+    testLink.target = "_blank";
+    testLink.rel = "noopener";
+    testLink.style.cssText = "display:inline-block;margin-top:6px;font-size:12px";
+    box?.appendChild(testLink);
   }
+  const setChip = (msg) => { chip.textContent = msg; };
 
-  // Helpers
-  function mmFromCm(x){ return Math.round(Number(x||0) * 10); }
-  function setChip(msg){ if(chip) chip.textContent = msg; }
-
-  // 1) STRATÉGIE PRINCIPALE : ta fonction existante getPaper() (en cm)
-  function tryGetFromGetter(){
-    if (typeof window.getPaper === "function") {
-      try {
-        const p = window.getPaper();
-        if(p && p.w > 0 && p.h > 0){
-          return {W:mmFromCm(p.w), H:mmFromCm(p.h)};
-        }
-      } catch(e){}
-    }
-    return null;
-  }
-
-  // 2) STRATÉGIE : parser un <select> (valeur “240x305” / texte “240 × 305”)
-  function tryGetFromSelects(){
-    const sels = Array.from(document.querySelectorAll("select"));
-    for(const s of sels){
-      const v = (s.value||"").toLowerCase();
-      let m = v.match(/^(\d+)\s*x\s*(\d+)$/);
-      if (!m) {
-        const opt = s.options[s.selectedIndex];
-        if (opt) m = (opt.text||"").toLowerCase().replace("×","x").match(/(\d+)\s*x\s*(\d+)/);
-      }
-      if (m) return {W:Number(m[1]), H:Number(m[2])};
-    }
-    return null;
-  }
-
-  // 3) STRATÉGIE : lire des champs input (ids contenant width/height ou largeur/hauteur) EN mm
-  function tryGetFromInputs(){
-    const nodes = Array.from(document.querySelectorAll("input, [data-paper-width], [data-paper-height]"));
-    let W=null,H=null;
-    for(const el of nodes){
-      const id=(el.id||"").toLowerCase();
-      if (id.includes("width")||id.includes("largeur"))  W = W ?? parseInt(el.value||el.getAttribute("data-paper-width")||"",10);
-      if (id.includes("height")||id.includes("hauteur")) H = H ?? parseInt(el.value||el.getAttribute("data-paper-height")||"",10);
-    }
-    if (W && H) return {W,H};
-    return null;
-  }
-
-  // 4) STRATÉGIE : fallback (24×30,5)
-  function fallback(){ return {W:305, H:240}; }
-
+  // Utilise ta fonction existante getPaper() – elle renvoie des cm
   function getPaperSizeMm(){
-    return tryGetFromGetter() || tryGetFromSelects() || tryGetFromInputs() || fallback();
+    try {
+      if (typeof getPaper === "function") {
+        const p = getPaper(); // {w: cm, h: cm}
+        if (p && p.w > 0 && p.h > 0) {
+          const W = Math.round(Number(p.w) * 10); // cm -> mm
+          const H = Math.round(Number(p.h) * 10);
+          return {W,H};
+        }
+      }
+    } catch(e){}
+    // Fallback (au cas où)
+    return {W:240, H:305};
   }
 
-  function candidatePaths(W, H){
-    const big  = Math.max(W,H), small = Math.min(W,H);
-    const stem = `Taquets_${big}x${small}_paysage`; // pour l’instant uniquement paysage
-    // Renseigne le libellé
-    title.textContent = `Repères taquets — ${big} × ${small} mm (paysage)`;
-    // Construit les chemins à tester
-    return EXT.map(ext => `${DIR}${stem}.${ext}`);
+  // Essaie 2 ordres: W×H (tel que renvoyé) puis H×W (swap)
+  function buildCandidates(W, H){
+    const stems = [
+      `Taquets_${W}x${H}_paysage`,
+      `Taquets_${H}x${W}_paysage`
+    ];
+    const files = [];
+    for (const stem of stems){
+      for (const ext of EXT){
+        files.push(`${DIR}${stem}.${ext}`);
+      }
+    }
+    return {stems, files};
   }
 
   function tryLoad(urls, onOK, onFail){
-    if(!urls.length){ onFail(); return; }
+    if (!urls.length){ onFail(); return; }
     const u = urls.shift();
     const t = new Image();
     t.onload  = () => onOK(u);
@@ -172,32 +142,37 @@ if ('serviceWorker' in navigator) {
 
   function updateTaquetPhoto(){
     if(!toggle || !box){ return; }
-    if(!toggle.checked){ box.style.display = "none"; return; }
+    if(!toggle.checked){
+      box.style.display = "none";
+      return;
+    }
+    const {W,H} = getPaperSizeMm();
+    title.textContent = `Repères taquets — ${W} × ${H} mm (paysage)`;
 
-    const {W,H} = getPaperSizeMm();         // en mm
-    const paths  = candidatePaths(W,H);
+    const {stems, files} = buildCandidates(W,H);
+    // statut visible + lien vers 1er candidat
+    setChip(`Recherche: ${files.map(f => f.replace(/^.*\//,"")).join("  |  ")}`);
+    testLink.href = files[0];
 
-    setChip(`Recherche: ${paths.map(p=>p.split('/').pop()).join('  |  ')}`);
-
-    tryLoad(paths.slice(),
+    tryLoad(files.slice(),
       (urlFound)=>{
         img.src = urlFound;
         fileUi.textContent = urlFound.split("/").pop();
         box.style.display = "";
-        setChip("✅ Photo trouvée");
+        setChip(`✅ Photo trouvée: ${urlFound.split("/").pop()}`);
+        console.log("[Taquets] OK:", urlFound);
       },
       ()=>{
         img.removeAttribute("src");
         fileUi.textContent = "";
         box.style.display = "none";
-        setChip("⚠️ Aucune photo correspondante trouvée");
+        setChip("⚠️ Aucune photo correspondante trouvée (clique le lien ci-dessus pour tester l’URL).");
+        console.warn("[Taquets] Aucun fichier trouvé. Essayés:", files);
       }
     );
   }
 
-  // ——— Brancher les évènements de ton app ———
-
-  // 1) Si ta fonction compute() existe, on la wrappe pour mettre à jour après calcul
+  // Wrap compute() pour mettre à jour après tes calculs
   if (typeof window.compute === "function") {
     const _orig = window.compute;
     window.compute = function(){
@@ -207,14 +182,14 @@ if ('serviceWorker' in navigator) {
     };
   }
 
-  // 2) Sur tout changement d’inputs/selects
+  // Update sur changements de selects/inputs
   document.addEventListener("change", (e)=>{
-    if(e.target && (e.target.tagName==="SELECT" || e.target.tagName==="INPUT")){
+    if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "INPUT")){
       updateTaquetPhoto();
     }
   });
 
-  // 3) Premier rendu
+  // Premier rendu
   document.addEventListener("DOMContentLoaded", updateTaquetPhoto);
 })();
 </script>
