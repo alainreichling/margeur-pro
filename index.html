@@ -839,5 +839,25 @@ function bind(){
 
 bind();
 </script>
+<script>
+(function(){
+  // Si ton dossier est "Taquets/", mets "Taquets/" ici :
+  const DIR = "taquets/";   // <-- mets précisément le nom de TON dossier
+  const EXT = ["jpeg","jpg","png","webp"];
+  const $ = s => document.querySelector(s);
+
+  // ... (le reste du script inchangé)
+
+  // Remplacer ENTIEREMENT la fonction candidatePaths par celle-ci :
+  function candidatePaths(W, H){
+    // IMPORTANT : on respecte l'ordre EXACT W x H tel que renvoyé par l'app
+    // (pas de tri grand/petit)
+    const stem = `Taquets_${W}x${H}_paysage`;
+    return EXT.map(ext => `${DIR}${stem}.${ext}`);
+  }
+
+  // ... (le reste du script inchangé)
+})();
+</script>
 </body>
 </html>
