@@ -218,101 +218,7 @@ if ('serviceWorker' in navigator) {
     <img id="taquetPhotoImg" alt="Repères taquets (paysage)" style="max-width:50%;height:auto;border-radius:8px;border:1px solid var(--border)">
   </div>
 </div>
-<script>
-(function(){
-  const DIR = "taquets/";                           // dossier en minuscule
-  const EXT = ["jpeg","jpg","png","webp"];
-  const $ = s => document.querySelector(s);
-
-  const box    = $("#taquetPhotoBox");
-  const img    = $("#taquetPhotoImg");
-  const title  = $("#taquetPhotoTitle");
-  const fileUi = $("#taquetPhotoFile");
-  const toggle = $("#toggleTaquetPhoto");
-
-  // Utilise ta fonction existante getPaper() – elle renvoie des cm
-  function getPaperSizeMm(){
-    try {
-      if (typeof getPaper === "function") {
-        const p = getPaper(); // {w: cm, h: cm}
-        if (p && p.w > 0 && p.h > 0) {
-          const W = Math.round(Number(p.w) * 10); // cm -> mm
-          const H = Math.round(Number(p.h) * 10);
-          return {W,H};
-        }
-      }
-    } catch(e){}
-    return {W:240, H:305}; // fallback
-  }
-
-  // Essaie W×H et H×W
-  function buildCandidates(W, H){
-    const stems = [
-      `Taquets_${W}x${H}_paysage`,
-      `Taquets_${H}x${W}_paysage`
-    ];
-    const files = [];
-    for (const stem of stems){
-      for (const ext of EXT){
-        files.push(`${DIR}${stem}.${ext}`);
-      }
-    }
-    return files;
-  }
-
-  function tryLoad(urls, onOK, onFail){
-    if (!urls.length){ onFail(); return; }
-    const u = urls.shift();
-    const t = new Image();
-    t.onload  = () => onOK(u);
-    t.onerror = () => tryLoad(urls, onOK, onFail);
-    t.src = u + "?v=" + Date.now(); // anti-cache
-  }
-
-  function updateTaquetPhoto(){
-    if(!toggle || !box){ return; }
-    if(!toggle.checked){
-      box.style.display = "none";
-      return;
-    }
-    const {W,H} = getPaperSizeMm();
-    title.textContent = `Repères taquets — ${W} × ${H} mm (paysage)`;
-
-    const candidates = buildCandidates(W,H);
-    tryLoad(candidates.slice(),
-      (urlFound)=>{
-        img.src = urlFound;
-        fileUi.textContent = "";   // ← on ne montre plus le nom
-        box.style.display = "";
-      },
-      ()=>{
-        img.removeAttribute("src");
-        fileUi.textContent = "";
-        box.style.display = "none";
-      }
-    );
-  }
-
-  // Intégration à ta logique existante
-  if (typeof window.compute === "function") {
-    const _orig = window.compute;
-    window.compute = function(){
-      const r = _orig.apply(this, arguments);
-      try { updateTaquetPhoto(); } catch(e){}
-      return r;
-    };
-  }
-
-  document.addEventListener("change", (e)=>{
-    if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "INPUT")){
-      updateTaquetPhoto();
-    }
-  });
-
-  document.addEventListener("DOMContentLoaded", updateTaquetPhoto);
-})();
-</script>
-  
+ 
     <div style="margin-top:14px" class="footer-note">
       © Margeur Pro — négatif 24×36 mm (ratio 2:3). Conçu pour un <b>margeur 4 lames</b>. Vérifiez visuellement au margeur avant tirage.
       • Mode 2:3 = marges ≥ minimale (côté choisi automatiquement) ; • Bordures identiques = marges fixées (recadrage possible).
@@ -797,6 +703,100 @@ bind();
   }
 
   // ... (le reste du script inchangé)
+})();
+</script>
+  <script>
+(function(){
+  const DIR = "taquets/";                           // dossier en minuscule
+  const EXT = ["jpeg","jpg","png","webp"];
+  const $ = s => document.querySelector(s);
+
+  const box    = $("#taquetPhotoBox");
+  const img    = $("#taquetPhotoImg");
+  const title  = $("#taquetPhotoTitle");
+  const fileUi = $("#taquetPhotoFile");
+  const toggle = $("#toggleTaquetPhoto");
+
+  // Utilise ta fonction existante getPaper() – elle renvoie des cm
+  function getPaperSizeMm(){
+    try {
+      if (typeof getPaper === "function") {
+        const p = getPaper(); // {w: cm, h: cm}
+        if (p && p.w > 0 && p.h > 0) {
+          const W = Math.round(Number(p.w) * 10); // cm -> mm
+          const H = Math.round(Number(p.h) * 10);
+          return {W,H};
+        }
+      }
+    } catch(e){}
+    return {W:240, H:305}; // fallback
+  }
+
+  // Essaie W×H et H×W
+  function buildCandidates(W, H){
+    const stems = [
+      `Taquets_${W}x${H}_paysage`,
+      `Taquets_${H}x${W}_paysage`
+    ];
+    const files = [];
+    for (const stem of stems){
+      for (const ext of EXT){
+        files.push(`${DIR}${stem}.${ext}`);
+      }
+    }
+    return files;
+  }
+
+  function tryLoad(urls, onOK, onFail){
+    if (!urls.length){ onFail(); return; }
+    const u = urls.shift();
+    const t = new Image();
+    t.onload  = () => onOK(u);
+    t.onerror = () => tryLoad(urls, onOK, onFail);
+    t.src = u + "?v=" + Date.now(); // anti-cache
+  }
+
+  function updateTaquetPhoto(){
+    if(!toggle || !box){ return; }
+    if(!toggle.checked){
+      box.style.display = "none";
+      return;
+    }
+    const {W,H} = getPaperSizeMm();
+    title.textContent = `Repères taquets — ${W} × ${H} mm (paysage)`;
+
+    const candidates = buildCandidates(W,H);
+    tryLoad(candidates.slice(),
+      (urlFound)=>{
+        img.src = urlFound;
+        fileUi.textContent = "";   // ← on ne montre plus le nom
+        box.style.display = "";
+      },
+      ()=>{
+        img.removeAttribute("src");
+        fileUi.textContent = "";
+        box.style.display = "none";
+      }
+    );
+  }
+
+  // Intégration à ta logique existante
+  if (typeof window.compute === "function") {
+    const _orig = window.compute;
+    window.compute = function(){
+      const r = _orig.apply(this, arguments);
+      try { updateTaquetPhoto(); } catch(e){}
+      return r;
+    };
+  }
+
+  document.addEventListener("change", (e)=>{
+    if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "INPUT")){
+      updateTaquetPhoto();
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", updateTaquetPhoto);
 })();
 </script>
 </body>
