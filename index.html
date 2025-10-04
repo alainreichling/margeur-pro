@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Margeur Pro — Calculateur marges & agrandissements 24×36 (margeur 4 lames)</title>
+<link rel="manifest" href="manifest.webmanifest?v=6.5">
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js?v=6.5'));
+}
+</script>
+<style>
+  :root { --bg:#fafafa; --fg:#111; --muted:#6b7280; --card:#fff; --border:#e5e7eb; --accent:#2563eb; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+  h1{font-size:22px;margin:0}
+  .container{max-width:1100px;margin:0 auto;padding:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .section{padding:16px 18px}
+  .grid{display:grid;gap:16px}
+  @media(min-width:1100px){ .grid-4{grid-template-columns:1.1fr 1fr 1fr 1.2fr} .grid-2{grid-template-columns:1fr 1fr} }
+  label{font-weight:600;font-size:13px;display:block;margin-bottom:6px}
+  select,input[type=number]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:white}
+  .muted{color:var(--muted);font-size:12px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .slider{width:100%}
+  input[type=range]{width:100%}
+  .radio-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .pill{display:inline-flex;gap:6px;align-items:center;background:#eef2ff;border:1px solid #dbeafe;border-radius:999px;padding:3px 10px;font-size:12px}
+  .result ul{margin:0;padding-left:18px}
+  .box{border:1px solid var(--border);border-radius:14px;background:#f8fafc;padding:10px}
+  .canvas-wrap{position:relative;width:100%;background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .canvas-inner{position:relative;width:100%;min-height:160px;}
+  .img-rect{background:#d1d5db;border-radius:6px;width:100%;height:100%}
+  .footer-note{font-size:12px;color:var(--muted)}
+  .hint{font-size:11px;color:var(--muted)}
+  .inline{display:inline-flex;gap:8px;align-items:center}
+  .disabled{opacity:.55;pointer-events:none;filter:grayscale(0.2)}
+  .warn{color:#b45309;font-size:12px;margin-top:6px}
+  .badge{position:absolute;transform:translate(-50%,-50%);background:rgba(17,24,39,.85);color:#fff;font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.2);white-space:nowrap;pointer-events:none}
+  .legend{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#374151}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#374151}
+  button.primary{background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer}
+  /* Banner shown next to the title */
+  #minBannerTop{display:none;margin-left:auto;background:rgba(17,24,39,.85);color:#fff;padding:6px 10px;border-radius:10px;font-size:12px;border:1px solid rgba(255,255,255,.15)}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h1>Margeur Pro — calculateur marges & agrandissements 24×36 (margeur 4 lames)</h1>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button id="aboutBtn" class="primary">À propos</button>
+        <span class="pill">v1.0.6</span>
+      </div>
+    </div>
+
+    <div class="card section grid grid-4">
+      <div>
+        <label>Format papier (hauteur × largeur, cm)</label>
+        <select id="paper">
+          <option data-h="8.9"  data-w="12.7">8.9 × 12.7 cm</option>
+          <option data-h="8.9"  data-w="14.0">8.9 × 14 cm</option>
+          <option data-h="9.96" data-w="12.5">9.96 × 12.5 cm</option>
+          <option data-h="10.5" data-w="14.8">10.5 × 14.8 cm</option>
+          <option data-h="10.0" data-w="15.0">10 × 15 cm</option>
+          <option data-h="12.7" data-w="17.8">12.7 × 17.8 cm</option>
+          <option data-h="16.5" data-w="21.6">16.5 × 21.6 cm</option>
+          <option data-h="17.8" data-w="24.0">17.8 × 24 cm</option>
+          <option data-h="20.3" data-w="25.4">20.3 × 25.4 cm</option>
+          <option data-h="21.0" data-w="29.7">21 × 29.7 cm</option>
+          <option data-h="21.6" data-w="27.9">21.6 × 27.9 cm</option>
+          <option data-h="24.0" data-w="30.5" selected>24 × 30.5 cm</option>
+          <option data-h="25.4" data-w="25.4">25.4 × 25.4 cm</option>
+          <option data-h="27.9" data-w="35.6">27.9 × 35.6 cm</option>
+          <option data-h="30.5" data-w="40.6">30.5 × 40.6 cm</option>
+          <option data-h="40.6" data-w="50.8">40.6 × 50.8 cm</option>
+          <option data-h="50.8" data-w="61.0">50.8 × 61 cm</option>
+        </select>
+        <div class="muted" id="paperInfo">Hauteur × Largeur : 24 × 30.5 cm</div>
+        <div class="row" style="margin-top:8px">
+          <label class="inline"><input type="checkbox" id="useCustom"> Utiliser un format personnalisé</label>
+        </div>
+        <div id="customWrap" class="row muted" style="margin-top:6px">
+          <span>H</span><input id="custH" type="number" step="0.01" min="1" value="24" style="width:90px">
+          <span>× W</span><input id="custW" type="number" step="0.01" min="1" value="30.5" style="width:90px">
+        </div>
+      </div>
+
+      <div>
+        <label>Orientation de l’image (négatif 24×36)</label>
+        <div class="radio-row">
+          <label class="row" style="font-weight:500">
+            <input type="radio" name="orient" value="landscape" checked>
+            Paysage (36 mm horizontal)
+          </label>
+          <label class="row" style="font-weight:500">
+            <input type="radio" name="orient" value="portrait">
+            Portrait (36 mm vertical)
+          </label>
+        </div>
+        <div class="hint">Rapport W/H du négatif : 3/2 (paysage) • 2/3 (portrait).</div>
+      </div>
+
+      <div>
+        <label>Marge minimale (cm) — margeur <b>4 lames</b></label>
+        <div class="row">
+          <input id="marginRange" class="slider" type="range" min="0" max="5" step="0.1" value="1.0">
+          <input id="marginInput" type="number" min="0" step="0.1" value="1.0" style="width:90px">
+        </div>
+        <div class="muted">En mode « Préserver 2:3 », l’appli choisit automatiquement si la marge minimale se place sur <b>Haut/Bas</b> ou <b>Gauche/Droite</b> pour maximiser la taille.</div>
+      </div>
+
+      <div>
+        <label>Mode & Contrainte</label>
+        <div class="radio-row" id="modeRow">
+          <label class="row" style="font-weight:500">
+            <input type="radio" name="mode" value="ratio" checked>
+            Préserver 2:3 (marge minimale, image centrée)
+          </label>
+          <label class="row" style="font-weight:500">
+            <input type="radio" name="mode" value="equalBorders">
+            Bordures identiques (recadrage si nécessaire)
+          </label>
+        </div>
+        <div id="forceWrap">
+          <div class="muted" style="margin-top:6px">Contrainte (uniquement en mode « Préserver 2:3 »)</div>
+          <div class="row" style="margin-top:6px">
+            <label class="inline"><input type="radio" name="force" value="none" checked> Aucune</label>
+            <label class="inline"><input type="radio" name="force" value="width"> Forcer <b>largeur image</b> (cm)</label>
+            <input id="forceW" type="number" min="0" step="0.1" value="20" style="width:90px">
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label class="inline"><input type="radio" name="force" value="height"> Forcer <b>hauteur image</b> (cm)</label>
+            <input id="forceH" type="number" min="0" step="0.1" value="15" style="width:90px">
+          </div>
+          <div id="forceNote" class="warn" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card section">
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
+        <h3 style="margin:0;font-size:18px">Aperçu proportionnel</h3>
+        <div id="minBannerTop">🟦 Marge minimale sur : <b id="minBannerSide">—</b></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:12px">
+        <div>
+          <div class="box">
+            <div class="canvas-wrap">
+              <div id="paperBox" class="canvas-inner"></div>
+            </div>
+            <div class="legend"><span><span class="dot"></span> Valeurs à régler sur le <b>margeur 4 lames</b></span></div>
+          </div>
+        </div>
+        <div class="result">
+          <h3 style="margin:0 0 8px 0;font-size:18px">Résultats</h3>
+          <div id="results"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px" class="footer-note">
+      © Margeur Pro — négatif 24×36 mm (ratio 2:3). Conçu pour un <b>margeur 4 lames</b>. Vérifiez visuellement au margeur avant tirage.
+      • Mode 2:3 = marges ≥ minimale (côté choisi automatiquement) ; • Bordures identiques = marges fixées (recadrage possible).
+    </div>
+  </div>
+
+<!-- Modal À propos -->
+<div id="aboutModal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:999;">
+  <div style="background:white;border-radius:14px;max-width:460px;width:92%;padding:20px;box-shadow:0 4px 10px rgba(0,0,0,.2);">
+    <h2 style="margin-top:0;font-size:20px;">À propos de Margeur Pro</h2>
+    <p style="font-size:14px;line-height:1.5;">
+      <b>Margeur Pro</b> est un outil gratuit pour calculer et visualiser les marges d’agrandissements 24×36 mm sur papiers standards, <b>spécifique aux margeurs 4 lames</b>.
+    </p>
+    <p style="font-size:13px;color:#555;">
+      Version : <b>1.0.6</b><br>
+      Auteur : A. Reichling<br>
+      Licence : Utilisation libre (non commerciale)<br>
+      Source : <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+    </p>
+    <div style="display:flex;justify-content:space-between;gap:10px;margin-top:6px;flex-wrap:wrap;">
+      <button id="aboutClose" class="primary">Fermer</button>
+      <button id="purgeBtn" class="primary" title="Désinstaller le service worker et vider le cache">Purger le cache</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ASPECTS = {
+  landscape: { aspect: 3/2, negH: 2.4 },
+  portrait:  { aspect: 2/3, negH: 3.6 },
+};
+
+function q(sel){ return document.querySelector(sel); }
+function round2(x){ return Math.round(x*100)/100; }
+
+function getPaper(){
+  const useCustom = q("#useCustom").checked;
+  if(useCustom){
+    const H = parseFloat(q("#custH").value || "0") || 0;
+    const W = parseFloat(q("#custW").value || "0") || 0;
+    return { label: "Personnalisé", h: H, w: W };
+  }
+  const opt = q("#paper").selectedOptions[0];
+  return { label: opt.textContent, h: parseFloat(opt.dataset.h), w: parseFloat(opt.dataset.w) };
+}
+
+function updateForceMax(){
+  const paper = getPaper();
+  const margin = parseFloat(q("#marginInput").value || "0") || 0;
+  const H_in = Math.max(0, paper.h - 2*margin);
+  const W_in = Math.max(0, paper.w - 2*margin);
+  const fw = q("#forceW");
+  const fh = q("#forceH");
+  if(fw){ fw.max = String(Math.max(0, round2(W_in))); fw.placeholder = `≤ ${round2(W_in)} cm`; }
+  if(fh){ fh.max = String(Math.max(0, round2(H_in))); fh.placeholder = `≤ ${round2(H_in)} cm`; }
+}
+
+function sideFromMargins(mTB, mLR, margin){
+  const eps = 1e-6;
+  const tbHit = Math.abs(mTB - margin) < eps;
+  const lrHit = Math.abs(mLR - margin) < eps;
+  if(tbHit && !lrHit) return "TB";
+  if(lrHit && !tbHit) return "LR";
+  // If both or none, choose the smaller margin side as the 'minimal'
+  return (mTB <= mLR) ? "TB" : "LR";
+}
+
+// Compute best fit with minimal margin placed on TB or LR (choose max image)
+function bestFitForMinMargin(paper, margin, ASPECT){
+  function fitWithTBmin(){
+    let H = paper.h - 2*margin;
+    let W = H * ASPECT;
+    if(W > paper.w - 2*margin){ W = paper.w - 2*margin; H = W / ASPECT; }
+    return {imgH:H, imgW:W, mTB:(paper.h - H)/2, mLR:(paper.w - W)/2, minOn:"TB"};
+  }
+  function fitWithLRmin(){
+    let W = paper.w - 2*margin;
+    let H = W / ASPECT;
+    if(H > paper.h - 2*margin){ H = paper.h - 2*margin; W = H * ASPECT; }
+    return {imgH:H, imgW:W, mTB:(paper.h - H)/2, mLR:(paper.w - W)/2, minOn:"LR"};
+  }
+  const A = fitWithTBmin();
+  const B = fitWithLRmin();
+  const areaA = A.imgH * A.imgW;
+  const areaB = B.imgH * B.imgW;
+  if(areaA > areaB + 1e-9) return A;
+  if(areaB > areaA + 1e-9) return B;
+  // If equal area, prefer the one that actually hits the minimal margin on at least one axis
+  const hitA = Math.abs(A.mTB - margin) < 1e-6 || Math.abs(A.mLR - margin) < 1e-6;
+  const hitB = Math.abs(B.mTB - margin) < 1e-6 || Math.abs(B.mLR - margin) < 1e-6;
+  if(hitA && !hitB) return A;
+  if(hitB && !hitA) return B;
+  return A;
+}
+
+function compute(){
+  const paper = getPaper();
+  const margin = parseFloat(q("#marginInput").value || "0") || 0;
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const orient = document.querySelector('input[name="orient"]:checked').value;
+  const { aspect: ASPECT, negH: NEG_H_CM } = ASPECTS[orient];
+
+  q("#paperInfo").textContent = `Hauteur × Largeur : ${round2(paper.h)} × ${round2(paper.w)} cm`;
+
+  const forceWrap = q("#forceWrap");
+  const forceNote = q("#forceNote");
+  if(mode === "ratio"){ forceWrap.classList.remove("disabled"); } else { forceWrap.classList.add("disabled"); }
+  if(forceNote){ forceNote.style.display = "none"; forceNote.textContent = ""; }
+
+  const bannerTop = q("#minBannerTop");
+  const bannerSide = q("#minBannerSide");
+  const hideBanner = () => { if(bannerTop) bannerTop.style.display = 'none'; };
+
+  let html = "";
+  let preview = { mTB:0, mLR:0 };
+
+  if(paper.h <= 0 || paper.w <= 0){
+    q("#results").innerHTML = `<div class="muted">Entrez un format papier personnalisé valide (H et W &gt; 0).</div>`;
+    hideBanner();
+    renderPreview({h:10,w:15}, {mTB:0,mLR:0}, "ratio", 0);
+    return;
+  }
+
+  if(mode === "ratio"){
+    const H_in = paper.h - 2*margin;
+    const W_in = paper.w - 2*margin;
+    if(H_in <= 0 || W_in <= 0){
+      html = `<div class="muted">Marge trop grande pour ce format de papier.</div>`;
+      hideBanner();
+    } else {
+      const forceMode = document.querySelector('input[name="force"]:checked').value;
+      let imgH, imgW, mTB, mLR, chosenMinSide;
+
+      if(forceMode === "none"){
+        const best = bestFitForMinMargin(paper, margin, ASPECT);
+        imgH = best.imgH; imgW = best.imgW; mTB = best.mTB; mLR = best.mLR;
+        chosenMinSide = sideFromMargins(mTB, mLR, margin);
+      } else if(forceMode === "width"){
+        let targetW = parseFloat(q("#forceW").value || "0") || 0;
+        const maxW = W_in;
+        if(targetW > maxW){ targetW = maxW; if(forceNote){ forceNote.style.display = "block"; forceNote.textContent = `⚠️ Largeur forcée limitée à ${round2(maxW)} cm.`; } q("#forceW").value = String(round2(maxW)); }
+        if(targetW <= 0){ html = `<div class="muted">Entrez une largeur d’image valide.</div>`; hideBanner(); q("#results").innerHTML = html; renderPreview(paper,{mTB:0,mLR:0},mode,margin); return; }
+        imgW = targetW; imgH = imgW / ASPECT;
+        if(imgH > H_in){ imgH = H_in; imgW = imgH * ASPECT; }
+        mTB = (paper.h - imgH)/2; mLR = (paper.w - imgW)/2;
+        chosenMinSide = sideFromMargins(mTB, mLR, margin);
+      } else { // force height
+        let targetH = parseFloat(q("#forceH").value || "0") || 0;
+        const maxH = H_in;
+        if(targetH > maxH){ targetH = maxH; if(forceNote){ forceNote.style.display = "block"; forceNote.textContent = `⚠️ Hauteur forcée limitée à ${round2(maxH)} cm.`; } q("#forceH").value = String(round2(maxH)); }
+        if(targetH <= 0){ html = `<div class="muted">Entrez une hauteur d’image valide.</div>`; hideBanner(); q("#results").innerHTML = html; renderPreview(paper,{mTB:0,mLR:0},mode,margin); return; }
+        imgH = targetH; imgW = imgH * ASPECT;
+        if(imgW > W_in){ imgW = W_in; imgH = imgW / ASPECT; }
+        mTB = (paper.h - imgH)/2; mLR = (paper.w - imgW)/2;
+        chosenMinSide = sideFromMargins(mTB, mLR, margin);
+      }
+
+      const factor = imgH / NEG_H_CM;
+      const allOK = (mTB + 1e-9 >= margin) && (mLR + 1e-9 >= margin);
+
+      html = `<ul>
+        <li>🧭 Orientation image : <b>${orient === "portrait" ? "Portrait" : "Paysage"}</b> — <i>margeur 4 lames</i></li>
+        <li>📸 <b>Taille image</b> : ${round2(imgH)} × ${round2(imgW)} cm (H × L)</li>
+        <li>📏 <b>Facteur d’agrandissement</b> : ${round2(factor)}×</li>
+        <li>🎯 <b>Marge minimale appliquée sur</b> : <b>${chosenMinSide==="TB"?"Haut/Bas":"Gauche/Droite"}</b></li>
+        <li>⬆️⬇️ <b>Marge haut/bas</b> : ${round2(mTB)} cm</li>
+        <li>⬅️➡️ <b>Marge gauche/droite</b> : ${round2(mLR)} cm</li>
+        <li>${allOK ? "✅" : "⚠️"} Rapport 2:3 conservé, image centrée, <b>marges ≥ minimale</b>.</li>
+      </ul>`;
+
+      if(bannerTop && bannerSide){
+        bannerSide.textContent = (chosenMinSide === "TB") ? "Haut/Bas" : "Gauche/Droite";
+        bannerTop.style.display = "inline-block";
+      }
+
+      preview.mTB = mTB; preview.mLR = mLR;
+    }
+  } else {
+    const Hwin = paper.h - 2*margin;
+    const Wwin = paper.w - 2*margin;
+    if(Hwin <= 0 || Wwin <= 0){
+      html = `<div class="muted">Marge trop grande pour ce format de papier.</div>`;
+      hideBanner();
+    } else {
+      const ASPECT = ASPECTS[orient].aspect;
+      const NEG_H_CM2 = ASPECTS[orient].negH;
+      const winAspect = Wwin / Hwin;
+      let cropOn = "aucun";
+      let negH_vis = NEG_H_CM2;
+      let negW_vis = NEG_H_CM2 * ASPECT;
+      if(Math.abs(winAspect - ASPECT) > 1e-9){
+        if(winAspect > ASPECT){ cropOn = "hauteur"; negH_vis = negW_vis / winAspect; }
+        else { cropOn = "largeur"; negW_vis = negH_vis * winAspect; }
+      }
+      const factor = Hwin / negH_vis;
+      const cropH_total_mm = Math.max(0, (NEG_H_CM2 - negH_vis)*10);
+      const cropW_total_mm = Math.max(0, (NEG_H_CM2*ASPECT - negW_vis)*10);
+      const cropEachH_mm = cropH_total_mm/2;
+      const cropEachW_mm = cropW_total_mm/2;
+
+      html = `<ul>
+        <li>🧭 Orientation image : <b>${orient === "portrait" ? "Portrait" : "Paysage"}</b> — <i>margeur 4 lames</i></li>
+        <li>📸 <b>Taille image</b> : ${round2(Hwin)} × ${round2(Wwin)} cm (fenêtre utile)</li>
+        <li>📏 <b>Facteur d’agrandissement</b> : ${round2(factor)}×</li>
+        <li>🟦 <b>Bordures identiques</b> : ${round2(margin)} cm (4 côtés)</li>
+        <li>✂️ <b>Recadrage du négatif</b> : ${
+          cropOn==="aucun" ? "—" : (cropOn==="hauteur"
+            ? `≈ ${round2(cropEachH_mm)} mm en haut & en bas`
+            : `≈ ${round2(cropEachW_mm)} mm à gauche & à droite`)}</li>
+        <li>ℹ️ Mode « Bordures identiques » — conçu pour <b>margeur 4 lames</b>.</li>
+      </ul>`;
+
+      hideBanner();
+      preview.mTB = margin; preview.mLR = margin;
+    }
+  }
+
+  q("#results").innerHTML = html;
+  renderPreview(paper, preview, mode, margin);
+}
+
+function addBadge(container, text, leftPct, topPct){
+  const b = document.createElement("div");
+  b.className = "badge";
+  b.style.left = leftPct + "%";
+  b.style.top = topPct + "%";
+  b.textContent = text;
+  container.appendChild(b);
+}
+
+function renderPreview(paper, prev, mode, margin){
+  const box = q("#paperBox");
+  box.innerHTML = "";
+
+  box.style.position = "relative";
+  box.style.width = "100%";
+  if ("aspectRatio" in document.body.style) {
+    box.style.aspectRatio = paper.w + " / " + paper.h;
+  } else {
+    box.style.paddingTop = (paper.h / paper.w) * 100 + "%";
+  }
+
+  const inner = document.createElement("div");
+  inner.style.position = "absolute";
+  inner.style.top = "0";
+  inner.style.left = "0";
+  inner.style.right = "0";
+  inner.style.bottom = "0";
+
+  let pt, pb, pl, pr;
+  let mTB, mLR;
+  if(mode === "ratio"){
+    pt = (prev.mTB / paper.h) * 100;
+    pb = (prev.mTB / paper.h) * 100;
+    pl = (prev.mLR / paper.w) * 100;
+    pr = (prev.mLR / paper.w) * 100;
+    mTB = prev.mTB; mLR = prev.mLR;
+  } else {
+    pt = pb = (margin / paper.h) * 100;
+    pl = pr = (margin / paper.w) * 100;
+    mTB = margin; mLR = margin;
+  }
+  inner.style.paddingTop = pt + "%";
+  inner.style.paddingBottom = pb + "%";
+  inner.style.paddingLeft = pl + "%";
+  inner.style.paddingRight = pr + "%";
+
+  const img = document.createElement("div");
+  img.className = "img-rect";
+  inner.appendChild(img);
+  box.appendChild(inner);
+
+  const minOffset = 2;
+  const topY = Math.max(pt/2, minOffset);
+  const botY = Math.min(100 - pb/2, 100 - minOffset);
+
+  const bias = 12;
+  const leftX_raw = pl/2 + bias;
+  const rightX_raw = 100 - pr/2 - bias;
+  const leftX  = Math.max(12, Math.min(45, leftX_raw));
+  const rightX = Math.max(55, Math.min(88, rightX_raw));
+
+  addBadge(box, `Haut: ${round2(mTB)} cm`, 50, topY);
+  addBadge(box, `Bas: ${round2(mTB)} cm`, 50, botY);
+  addBadge(box, `Gauche: ${round2(mLR)} cm`, leftX, 50);
+  addBadge(box, `Droite: ${round2(mLR)} cm`, rightX, 50);
+}
+
+async function purgeCaches(){
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch(e){}
+  const u = new URL(window.location.href);
+  u.searchParams.set('nocache', Date.now().toString());
+  window.location.replace(u.toString());
+}
+
+function bind(){
+  q("#paper").addEventListener("change", ()=>{
+    const opt = q("#paper").selectedOptions[0];
+    q("#paperInfo").textContent = `Hauteur × Largeur : ${opt.dataset.h} × ${opt.dataset.w} cm`;
+    updateForceMax();
+    compute();
+  });
+
+  const customWrap = q("#customWrap");
+  function applyCustomState(){ customWrap.style.opacity = q("#useCustom").checked ? "1" : ".5"; }
+  q("#useCustom").addEventListener("change", ()=>{ applyCustomState(); updateForceMax(); compute(); });
+  ["custH","custW"].forEach(id=> q("#"+id).addEventListener("input", ()=>{ updateForceMax(); compute(); }));
+  applyCustomState();
+
+  ["marginRange","marginInput"].forEach(id=>{
+    q("#"+id).addEventListener("input", (e)=>{
+      if(id==="marginRange"){ q("#marginInput").value = e.target.value; } 
+      else { q("#marginRange").value = e.target.value; }
+      updateForceMax();
+      compute();
+    });
+  });
+  document.querySelectorAll('input[name="mode"]').forEach(r=> r.addEventListener("change", compute));
+  document.querySelectorAll('input[name="orient"]').forEach(r=> r.addEventListener("change", compute));
+  ["forceW","forceH"].forEach(id=> q("#"+id).addEventListener("input", compute));
+  document.querySelectorAll('input[name="force"]').forEach(r=> r.addEventListener("change", compute));
+
+  // About modal + purge
+  const aboutModal = document.getElementById('aboutModal');
+  const aboutBtn = document.getElementById('aboutBtn');
+  const aboutClose = document.getElementById('aboutClose');
+  const purgeBtn = document.getElementById('purgeBtn');
+  if (aboutBtn && aboutModal && aboutClose) {
+    aboutBtn.addEventListener('click', ()=> aboutModal.style.display = 'flex');
+    aboutClose.addEventListener('click', ()=> aboutModal.style.display = 'none');
+    aboutModal.addEventListener('click', (e)=>{ if(e.target === aboutModal) aboutModal.style.display = 'none'; });
+  }
+  if(purgeBtn){ purgeBtn.addEventListener('click', purgeCaches); }
+
+  updateForceMax();
+  compute();
+}
+
+bind();
+</script>
+</body>
+</html>
