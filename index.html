@@ -70,8 +70,8 @@ if ('serviceWorker' in navigator) {
 </div>
 <script>
 (function(){
-  const DIR = "taquets/";                           // <-- dossier en minuscule
-  const EXT = ["jpeg","jpg","png","webp"];          // extensions testées
+  const DIR = "taquets/";                           // dossier en minuscule
+  const EXT = ["jpeg","jpg","png","webp"];
   const $ = s => document.querySelector(s);
 
   const box    = $("#taquetPhotoBox");
@@ -79,26 +79,6 @@ if ('serviceWorker' in navigator) {
   const title  = $("#taquetPhotoTitle");
   const fileUi = $("#taquetPhotoFile");
   const toggle = $("#toggleTaquetPhoto");
-
-  // Petit panneau de statut + lien test
-  let chip = document.getElementById("taquetStatusChip");
-  if(!chip){
-    chip = document.createElement("div");
-    chip.id = "taquetStatusChip";
-    chip.style.cssText = "margin-top:6px;font-size:12px;opacity:.8";
-    box?.appendChild(chip);
-  }
-  let testLink = document.getElementById("taquetTestLink");
-  if(!testLink){
-    testLink = document.createElement("a");
-    testLink.id = "taquetTestLink";
-    testLink.textContent = "➡️ Ouvrir le 1er candidat dans un nouvel onglet";
-    testLink.target = "_blank";
-    testLink.rel = "noopener";
-    testLink.style.cssText = "display:inline-block;margin-top:6px;font-size:12px";
-    box?.appendChild(testLink);
-  }
-  const setChip = (msg) => { chip.textContent = msg; };
 
   // Utilise ta fonction existante getPaper() – elle renvoie des cm
   function getPaperSizeMm(){
@@ -112,11 +92,10 @@ if ('serviceWorker' in navigator) {
         }
       }
     } catch(e){}
-    // Fallback (au cas où)
-    return {W:240, H:305};
+    return {W:240, H:305}; // fallback
   }
 
-  // Essaie 2 ordres: W×H (tel que renvoyé) puis H×W (swap)
+  // Essaie W×H et H×W
   function buildCandidates(W, H){
     const stems = [
       `Taquets_${W}x${H}_paysage`,
@@ -128,7 +107,7 @@ if ('serviceWorker' in navigator) {
         files.push(`${DIR}${stem}.${ext}`);
       }
     }
-    return {stems, files};
+    return files;
   }
 
   function tryLoad(urls, onOK, onFail){
@@ -149,30 +128,22 @@ if ('serviceWorker' in navigator) {
     const {W,H} = getPaperSizeMm();
     title.textContent = `Repères taquets — ${W} × ${H} mm (paysage)`;
 
-    const {stems, files} = buildCandidates(W,H);
-    // statut visible + lien vers 1er candidat
-    setChip(`Recherche: ${files.map(f => f.replace(/^.*\//,"")).join("  |  ")}`);
-    testLink.href = files[0];
-
-    tryLoad(files.slice(),
+    const candidates = buildCandidates(W,H);
+    tryLoad(candidates.slice(),
       (urlFound)=>{
         img.src = urlFound;
-        fileUi.textContent = urlFound.split("/").pop();
+        fileUi.textContent = "";   // ← on ne montre plus le nom
         box.style.display = "";
-        setChip(`✅ Photo trouvée: ${urlFound.split("/").pop()}`);
-        console.log("[Taquets] OK:", urlFound);
       },
       ()=>{
         img.removeAttribute("src");
         fileUi.textContent = "";
         box.style.display = "none";
-        setChip("⚠️ Aucune photo correspondante trouvée (clique le lien ci-dessus pour tester l’URL).");
-        console.warn("[Taquets] Aucun fichier trouvé. Essayés:", files);
       }
     );
   }
 
-  // Wrap compute() pour mettre à jour après tes calculs
+  // Intégration à ta logique existante
   if (typeof window.compute === "function") {
     const _orig = window.compute;
     window.compute = function(){
@@ -182,14 +153,12 @@ if ('serviceWorker' in navigator) {
     };
   }
 
-  // Update sur changements de selects/inputs
   document.addEventListener("change", (e)=>{
     if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "INPUT")){
       updateTaquetPhoto();
     }
   });
 
-  // Premier rendu
   document.addEventListener("DOMContentLoaded", updateTaquetPhoto);
 })();
 </script>
