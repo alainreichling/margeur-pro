@@ -83,97 +83,105 @@ if ('serviceWorker' in navigator) {
 </div>
 <script>
 (function(){
-  const DIR = "taquets/";                           // dossier en minuscule
+  const DIR = "taquets/";                 // dossier des images
   const EXT = ["jpeg","jpg","png","webp"];
+
+  // Re-sélectionne les éléments quand on en a besoin (évite les refs nulles)
   const $ = s => document.querySelector(s);
-
-  const box    = $("#taquetPhotoBox");
-  const img    = $("#taquetPhotoImg");
-  const title  = $("#taquetPhotoTitle");
-  const fileUi = $("#taquetPhotoFile");
-  const toggle = $("#toggleTaquetPhoto");
-
-  // Utilise ta fonction existante getPaper() – elle renvoie des cm
-  function getPaperSizeMm(){
-    try {
-      if (typeof getPaper === "function") {
-        const p = getPaper(); // {w: cm, h: cm}
-        if (p && p.w > 0 && p.h > 0) {
-          const W = Math.round(Number(p.w) * 10); // cm -> mm
-          const H = Math.round(Number(p.h) * 10);
-          return {W,H};
-        }
-      }
-    } catch(e){}
-    return {W:240, H:305}; // fallback
+  function els(){
+    return {
+      box:   $("#taquetPhotoBox"),
+      img:   $("#taquetPhotoImg"),
+      title: $("#taquetPhotoTitle"),
+      fileUi:$("#taquetPhotoFile"),
+      toggle:$("#toggleTaquetPhoto")
+    };
   }
 
-  // Essaie W×H et H×W
-  function buildCandidates(W, H){
+  // Récupère le format papier (mm) depuis ta fonction getPaper() (cm → mm)
+  function getPaperSizeMm(){
+    try{
+      if (typeof getPaper === "function"){
+        const p = getPaper(); // {w:cm, h:cm}
+        if (p && p.w>0 && p.h>0){
+          return { W: Math.round(p.w*10), H: Math.round(p.h*10) };
+        }
+      }
+    }catch(e){}
+    return { W:240, H:305 }; // fallback
+  }
+
+  // Teste W×H puis H×W (au cas où)
+  function buildCandidates(W,H){
     const stems = [
       `Taquets_${W}x${H}_paysage`,
       `Taquets_${H}x${W}_paysage`
     ];
     const files = [];
     for (const stem of stems){
-      for (const ext of EXT){
-        files.push(`${DIR}${stem}.${ext}`);
-      }
+      for (const ext of EXT){ files.push(`${DIR}${stem}.${ext}`); }
     }
     return files;
   }
 
   function tryLoad(urls, onOK, onFail){
-    if (!urls.length){ onFail(); return; }
+    if(!urls.length){ onFail(); return; }
     const u = urls.shift();
     const t = new Image();
-    t.onload  = () => onOK(u);
+    t.onload = () => onOK(u);
     t.onerror = () => tryLoad(urls, onOK, onFail);
-    t.src = u + "?v=" + Date.now(); // anti-cache
+    t.src = u + "?v=" + Date.now();
   }
 
   function updateTaquetPhoto(){
-    if(!toggle || !box){ return; }
-    if(!toggle.checked){
+    const {box,img,title,fileUi,toggle} = els();
+    if (!box || !img || !title || !toggle) return; // éléments pas encore en DOM
+
+    if (!toggle.checked){
       box.style.display = "none";
       return;
     }
+
     const {W,H} = getPaperSizeMm();
     title.textContent = `Repères taquets — ${W} × ${H} mm (paysage)`;
 
     const candidates = buildCandidates(W,H);
     tryLoad(candidates.slice(),
-      (urlFound)=>{
-        img.src = urlFound;
-        fileUi.textContent = "";   // ← on ne montre plus le nom
-        box.style.display = "";
-      },
-      ()=>{
-        img.removeAttribute("src");
-        fileUi.textContent = "";
-        box.style.display = "none";
-      }
+      (urlFound)=>{ img.src = urlFound; if(fileUi) fileUi.textContent = ""; box.style.display = ""; },
+      ()=>{ img.removeAttribute("src"); if(fileUi) fileUi.textContent = ""; box.style.display = "none"; }
     );
   }
 
-  // Intégration à ta logique existante
-  if (typeof window.compute === "function") {
+  // Intégration : relancer l’update après tes calculs
+  if (typeof window.compute === "function"){
     const _orig = window.compute;
     window.compute = function(){
       const r = _orig.apply(this, arguments);
-      try { updateTaquetPhoto(); } catch(e){}
+      try{ updateTaquetPhoto(); }catch(e){}
       return r;
     };
   }
 
+  // Relancer à chaque changement d’inputs/selects
   document.addEventListener("change", (e)=>{
-    if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "INPUT")){
+    if (e.target && (e.target.tagName==="SELECT" || e.target.tagName==="INPUT")){
       updateTaquetPhoto();
     }
   });
 
-  document.addEventListener("DOMContentLoaded", updateTaquetPhoto);
+  // Garanti un premier passage quand TOUT est chargé (y compris ta carte en bas)
+  window.addEventListener("load", updateTaquetPhoto);
+
+  // Expose un hook si tu veux l’appeler toi-même
+  window.__margeur_updateTaquetPhoto = updateTaquetPhoto;
 })();
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const card = document.getElementById("taquetsCard");
+  const footer = document.querySelector("footer");
+  if (card && footer) footer.parentNode.insertBefore(card, footer);
+});
 </script>
 <body>
   <div class="container">
