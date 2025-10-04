@@ -48,6 +48,121 @@ if ('serviceWorker' in navigator) {
   .test-tools{display:none}
 </style>
 </head>
+  <!-- === Margeur Pro : affichage photo taquets (paysage) — intégré v1.2 === -->
+<div class="card section" id="taquetsCard" style="margin-top:14px">
+  <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap">
+    <h3 style="margin:0;font-size:18px">Photo de taquets</h3>
+    <label class="row" style="font-weight:500">
+      <input type="checkbox" id="toggleTaquetPhoto" checked>
+      Margeur Dunco (afficher/masquer)
+    </label>
+  </div>
+  <div id="taquetPhotoBox" class="box" style="display:none;margin-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <strong id="taquetPhotoTitle">Repères taquets — —</strong>
+      <span id="taquetPhotoFile" class="muted"></span>
+    </div>
+    <img id="taquetPhotoImg" alt="Repères taquets (paysage)" style="max-width:100%;height:auto;border-radius:8px;border:1px solid var(--border)">
+    <div class="hint" style="margin-top:6px">
+      Nommage attendu : <code>Taquets_<em>largeur</em>x<em>hauteur</em>_paysage.(jpeg|jpg|png|webp)</code> — placé dans <code>/taquets/</code>
+    </div>
+  </div>
+</div>
+  <script>
+(function(){
+  // Dossier où tu mettras tes photos (à côté de index.html)
+  const DIR = "taquets/";                // ex: /taquets/Taquets_240x305_paysage.jpeg
+  const EXT = ["jpeg","jpg","png","webp"];
+
+  const $ = s => document.querySelector(s);
+  const box   = $("#taquetPhotoBox");
+  const img   = $("#taquetPhotoImg");
+  const title = $("#taquetPhotoTitle");
+  const fileUi= $("#taquetPhotoFile");
+  const toggle= $("#toggleTaquetPhoto");
+
+  // On lit le format depuis TON appli (getPaper() existe déjà dans ton code)
+  // getPaper() retourne { h:cm, w:cm } (en cm) selon ta sélection (ou personnalisé).
+  function getPaperSizeMm(){
+    try{
+      const p = (typeof getPaper === "function") ? getPaper() : null;
+      if(p && p.h>0 && p.w>0){
+        // Convertit cm -> mm et arrondit à l'entier (24.0 -> 240 ; 30.5 -> 305 ; 21.6 -> 216)
+        const H = Math.round(p.h * 10);
+        const W = Math.round(p.w * 10);
+        return { H, W };
+      }
+    }catch(e){}
+    // Fallback par défaut (24x30.5)
+    return { H:240, W:305 };
+  }
+
+  function candidatePaths(W, H){
+    // Photos fournies en mode paysage uniquement pour l’instant
+    const big  = Math.max(W,H), small = Math.min(W,H);
+    const stem = `Taquets_${big}x${small}_paysage`;
+    return EXT.map(ext => `${DIR}${stem}.${ext}`);
+  }
+
+  function tryLoad(urls, onOK, onFail){
+    if(!urls.length){ onFail(); return; }
+    const u = urls.shift();
+    const t = new Image();
+    t.onload  = () => onOK(u);
+    t.onerror = () => tryLoad(urls, onOK, onFail);
+    t.src = u + "?v=" + Date.now();  // anti-cache
+  }
+
+  function updateTaquetPhoto(){
+    if(!toggle || !box) return;
+    if(!toggle.checked){
+      box.style.display = "none";
+      return;
+    }
+    const {H, W} = getPaperSizeMm();      // mm entiers
+    const paths  = candidatePaths(W, H);  // essaie .jpeg, .jpg, .png, .webp
+    title.textContent = `Repères taquets — ${Math.max(W,H)} × ${Math.min(W,H)} mm (paysage)`;
+
+    tryLoad(paths.slice(),
+      (urlFound)=>{
+        img.src = urlFound;
+        fileUi.textContent = urlFound.split("/").pop();
+        box.style.display = "";
+      },
+      ()=>{
+        img.removeAttribute("src");
+        fileUi.textContent = "";
+        box.style.display = "none";       // aucune image = rien à afficher
+      }
+    );
+  }
+
+  // Écouteurs basiques
+  if(toggle){ toggle.addEventListener("change", updateTaquetPhoto); }
+
+  // Sans modifier ton code : on wrappe compute() pour déclencher l’update après chaque calcul.
+  if (typeof window.compute === "function") {
+    const __origCompute = window.compute;
+    window.compute = function(){
+      const r = __origCompute.apply(this, arguments);
+      try { updateTaquetPhoto(); } catch(e){}
+      return r;
+    };
+  } else {
+    // Si compute n'est pas encore défini à ce moment, on fera un update au DOMContentLoaded quand même
+  }
+
+  // Au chargement
+  document.addEventListener("DOMContentLoaded", updateTaquetPhoto);
+
+  // Par sécurité, si l’utilisateur change des selects/inputs sans déclencher compute (peu probable)
+  document.addEventListener("change", (e)=>{
+    if(e.target && (e.target.tagName==="SELECT" || e.target.tagName==="INPUT")){
+      try { updateTaquetPhoto(); } catch(e){}
+    }
+  });
+})();
+</script>
 <body>
   <div class="container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
